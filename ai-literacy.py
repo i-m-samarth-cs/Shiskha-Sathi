@@ -5,62 +5,34 @@ import threading
 import openai
 from queue import Queue
 
-# Use session state to manage voice engine and thread initialization
-if "tts_engine" not in st.session_state:
-    try:
-        tts_engine = pyttsx3.init()
-        voices = tts_engine.getProperty('voices')
-        selected_voice_id = None
-        for voice in voices:
-            if "en" in voice.languages[0].lower() or "english" in voice.name.lower():
-                selected_voice_id = voice.id
-                break
-        
-        if selected_voice_id:
-            tts_engine.setProperty('voice', selected_voice_id)
-        else:
-            print("Warning: No English voice found, using default.")
-            
-        st.session_state["tts_engine"] = tts_engine
-        st.session_state["voice_queue"] = Queue()
-        st.session_state["voice_worker_started"] = False
-    except Exception as e:
-        st.error(f"Error initializing TTS engine: {e}")
-        st.session_state["tts_engine"] = None
-        st.session_state["voice_queue"] = Queue() # Still need queue even if engine fails
-        st.session_state["voice_worker_started"] = False
+# --- Configuration and Initialization ---
 
-# Voice worker thread - now accepts engine and queue as arguments
-def voice_worker(engine, queue):
-    if not engine:
-        return
-        
+# Initialize pyttsx3 TTS engine and a thread-safe queue for voice commands
+tts_engine = pyttsx3.init()
+voice_queue = Queue()
+
+# Voice worker thread
+def voice_worker():
     while True:
-        text = queue.get()
+        text = voice_queue.get()
         if text is None:
             break
         try:
-            engine.say(text)
-            engine.runAndWait()
+            tts_engine.say(text)
+            tts_engine.runAndWait()
         except Exception as e:
             print(f"Error in voice worker: {e}")
         finally:
-            queue.task_done()
+            voice_queue.task_done()
 
 # Start the voice worker thread ONLY ONCE using Streamlit's session state.
-if st.session_state["tts_engine"] and not st.session_state["voice_worker_started"]:
-    threading.Thread(
-        target=voice_worker, 
-        args=(st.session_state["tts_engine"], st.session_state["voice_queue"]), 
-        daemon=True
-    ).start()
+# This is the key fix for the "run loop already started" error.
+if "voice_worker_started" not in st.session_state:
+    threading.Thread(target=voice_worker, daemon=True).start()
     st.session_state["voice_worker_started"] = True
 
 def speak_text(text):
-    if st.session_state["tts_engine"]:
-        st.session_state["voice_queue"].put(text)
-    else:
-        st.warning("Voice engine is not available.")
+    voice_queue.put(text)
 
 st.set_page_config(
     page_title="Shiksha Saathi 📚",
@@ -361,7 +333,7 @@ with st.container():
     st.image(
         "https://www.powerschool.com/wp-content/uploads/2024/09/student-ai-literacy-blog-thumbnail-110424.jpg",
         caption="Learn anytime, anywhere",
-        use_container_width=True,
+        use_column_width=True,
         clamp=True,
         output_format="auto"
     )
