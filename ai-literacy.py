@@ -361,7 +361,7 @@ with st.container():
     st.image(
         "https://www.powerschool.com/wp-content/uploads/2024/09/student-ai-literacy-blog-thumbnail-110424.jpg",
         caption="Learn anytime, anywhere",
-        use_column_width=True,
+        use_container_width=True,
         clamp=True,
         output_format="auto"
     )
