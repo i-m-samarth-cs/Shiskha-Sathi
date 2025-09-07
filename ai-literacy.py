@@ -393,7 +393,7 @@ with notes_col1:
     st.markdown("### Farming Techniques")
     st.download_button(
         label="Download Natural Farming Manual",
-        data="https://naturalfarming.dac.gov.in/uploads/studymaterial/Technical-Manual-on-Natural_Farming_10.03.2025.pdf",
+        data="https://www.agriwelfare.gov.in/Documents/HomeWhatsNew/Guideline_NMNF_V2_10022025_Revised.pdf",
         file_name="natural-farming-manual.pdf",
         mime="application/pdf",
     )
@@ -419,7 +419,7 @@ with notes_col3:
     st.markdown("### Financial Literacy")
     st.download_button(
         label="Download Financial Literacy Basics",
-        data="https://www.metisnation.org/wp-content/uploads/2022/01/Financial-Literacy-Basics-for-Adults.pdf",
+        data="https://responsiblecash.org/sites/default/files/WFP%20Financial%20litteracy%205%20weeks%20training%20program%20Uganda%20%281%29.pdf",
         file_name="financial-literacy-basics.pdf",
         mime="application/pdf",
     )
