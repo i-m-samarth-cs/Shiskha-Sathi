@@ -26,6 +26,11 @@ def voice_worker():
             voice_queue.task_done()
 
 # Start the voice worker thread ONLY ONCE using Streamlit's session state.
+if "voice_worker_started" not in st.session_state:
+    threading.Thread(target=voice_worker, daemon=True).start()
+    st.session_state["voice_worker_started"] = True
+
+# Start the voice worker thread ONLY ONCE using Streamlit's session state.
 # This is the key fix for the "run loop already started" error.
 if "voice_worker_started" not in st.session_state:
     threading.Thread(target=voice_worker, daemon=True).start()
