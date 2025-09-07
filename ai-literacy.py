@@ -7,35 +7,41 @@ from queue import Queue
 
 # --- Configuration and Initialization ---
 
-# Initialize pyttsx3 TTS engine and a thread-safe queue for voice commands
-tts_engine = pyttsx3.init()
-
-# Use session state to set the voice once on app startup to avoid the ValueError
-if "voice_set" not in st.session_state:
+# Use session state to manage voice engine and thread initialization
+if "tts_engine" not in st.session_state:
     try:
-        voices = tts_engine.getProperty('voices')
-        # Find a suitable English voice, or default to the first one available
+        # Initialize pyttsx3 TTS engine
+        st.session_state["tts_engine"] = pyttsx3.init()
+        # Find a suitable English voice and set it to avoid the ValueError
+        voices = st.session_state["tts_engine"].getProperty('voices')
         selected_voice_id = None
         for voice in voices:
-            # Check for English voice variants
             if "en" in voice.languages[0].lower() or "english" in voice.name.lower():
                 selected_voice_id = voice.id
                 break
         
         if selected_voice_id:
-            tts_engine.setProperty('voice', selected_voice_id)
+            st.session_state["tts_engine"].setProperty('voice', selected_voice_id)
         else:
             print("Warning: No English voice found, using default.")
             
-        st.session_state["voice_set"] = True
     except Exception as e:
-        st.error(f"Error setting voice: {e}. Please check the logs.")
-        st.session_state["voice_set"] = False
+        st.error(f"Error initializing TTS engine: {e}")
+        st.session_state["tts_engine"] = None
 
-voice_queue = Queue()
+# Initialize other session state variables
+if "voice_queue" not in st.session_state:
+    st.session_state["voice_queue"] = Queue()
+if "voice_worker_started" not in st.session_state:
+    st.session_state["voice_worker_started"] = False
 
 # Voice worker thread
 def voice_worker():
+    tts_engine = st.session_state["tts_engine"]
+    voice_queue = st.session_state["voice_queue"]
+    if not tts_engine:
+        return
+        
     while True:
         text = voice_queue.get()
         if text is None:
@@ -49,12 +55,15 @@ def voice_worker():
             voice_queue.task_done()
 
 # Start the voice worker thread ONLY ONCE using Streamlit's session state.
-if "voice_worker_started" not in st.session_state:
+if not st.session_state["voice_worker_started"]:
     threading.Thread(target=voice_worker, daemon=True).start()
     st.session_state["voice_worker_started"] = True
 
 def speak_text(text):
-    voice_queue.put(text)
+    if st.session_state["tts_engine"]:
+        st.session_state["voice_queue"].put(text)
+    else:
+        st.warning("Voice engine is not available.")
 
 st.set_page_config(
     page_title="Shiksha Saathi 📚",
