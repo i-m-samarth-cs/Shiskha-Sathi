@@ -9,6 +9,29 @@ from queue import Queue
 
 # Initialize pyttsx3 TTS engine and a thread-safe queue for voice commands
 tts_engine = pyttsx3.init()
+
+# Use session state to set the voice once on app startup to avoid the ValueError
+if "voice_set" not in st.session_state:
+    try:
+        voices = tts_engine.getProperty('voices')
+        # Find a suitable English voice, or default to the first one available
+        selected_voice_id = None
+        for voice in voices:
+            # Check for English voice variants
+            if "en" in voice.languages[0].lower() or "english" in voice.name.lower():
+                selected_voice_id = voice.id
+                break
+        
+        if selected_voice_id:
+            tts_engine.setProperty('voice', selected_voice_id)
+        else:
+            print("Warning: No English voice found, using default.")
+            
+        st.session_state["voice_set"] = True
+    except Exception as e:
+        st.error(f"Error setting voice: {e}. Please check the logs.")
+        st.session_state["voice_set"] = False
+
 voice_queue = Queue()
 
 # Voice worker thread
@@ -26,12 +49,6 @@ def voice_worker():
             voice_queue.task_done()
 
 # Start the voice worker thread ONLY ONCE using Streamlit's session state.
-if "voice_worker_started" not in st.session_state:
-    threading.Thread(target=voice_worker, daemon=True).start()
-    st.session_state["voice_worker_started"] = True
-
-# Start the voice worker thread ONLY ONCE using Streamlit's session state.
-# This is the key fix for the "run loop already started" error.
 if "voice_worker_started" not in st.session_state:
     threading.Thread(target=voice_worker, daemon=True).start()
     st.session_state["voice_worker_started"] = True
